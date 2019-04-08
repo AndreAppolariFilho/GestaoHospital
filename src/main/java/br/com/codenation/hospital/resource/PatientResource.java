@@ -6,11 +6,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 
+import br.com.codenation.hospital.dto.PatientDTO;
 import com.fasterxml.jackson.core.JsonParseException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -37,25 +39,58 @@ public class PatientResource {
 	
 	@Autowired
 	private HospitalService hospitalService;
-	
+
+	private boolean patientInHospital(Hospital hospital, Patient patient){
+		return hospital.getPatients().contains(patient);
+
+	}
+
 	@GetMapping(path="/pacientes/{paciente}", produces="application/json")
 	public ResponseEntity<Patient> findPatientById(@PathVariable("hospital_id") String hospital_id, @PathVariable("paciente") String patient_id){
-		return ResponseEntity.ok().body(service.findById(patient_id));
-	}
-	@PostMapping(path="/pacientes/{paciente}", produces="application/json")
-	public ResponseEntity<Patient> createPacient(@PathVariable("hospital_id") String hospital_id, @PathVariable("paciente") String patient_id){
 		Hospital obj = hospitalService.findById(hospital_id);
-		List<Patient> patients = obj.getPatients();
 		Patient patient = service.findById(patient_id);
-		hospitalService.update(obj);
+		if(!patientInHospital(obj, patient))
+			throw new RuntimeException("Esse paciente não esta cadastrado neste hospital");
 		return ResponseEntity.ok().body(patient);
 	}
 
+	@GetMapping(path="/pacientes/", produces="application/json")
+	public ResponseEntity<List<Patient>> findPatients(@PathVariable("hospital_id") String hospital_id){
+		Hospital obj = hospitalService.findById(hospital_id);
+		return ResponseEntity.ok().body(obj.getPatients());
+	}
+
+	@PostMapping(path="/pacientes/", produces="application/json")
+	public ResponseEntity<Patient> createPacient(@PathVariable("hospital_id") String hospital_id, @RequestBody Patient objP){
+		Hospital obj = hospitalService.findById(hospital_id);
+		List<Patient> patients = obj.getPatients();
+		patients.add(objP);
+		service.update(objP);
+		hospitalService.update(obj);
+		return ResponseEntity.ok().body(objP);
+	}
+
 	@PutMapping(path="/pacientes/{paciente}", produces="application/json")
+	public ResponseEntity<Patient> createPacient(@PathVariable("hospital_id") String hospital_id, @PathVariable("paciente") String patient_id, @RequestBody Patient objP){
+		Hospital obj = hospitalService.findById(hospital_id);
+		List<Patient> patients = obj.getPatients();
+
+		Patient p = service.findById(patient_id);
+		if(!patientInHospital(obj, p))
+			throw new RuntimeException("Esse paciente não esta cadastrado neste hospital");
+		patients.set(patients.indexOf(p), objP);
+		service.update(objP);
+		hospitalService.update(obj);
+		return ResponseEntity.ok().body(objP);
+	}
+
+	@PatchMapping(path="/pacientes/{paciente}", produces="application/json")
 	public ResponseEntity<Patient> checkIn(@PathVariable("hospital_id") String hospital_id, @PathVariable("paciente") String patient_id, @RequestBody String data){
 		Hospital obj = hospitalService.findById(hospital_id);
 
 		Patient p = service.findById(patient_id);
+		if(!patientInHospital(obj, p))
+			throw new RuntimeException("Esse paciente não esta cadastrado neste hospital");
 		ObjectMapper mapper = new ObjectMapper();
 		Map<String, String> map = new HashMap<String, String>();
 		try {

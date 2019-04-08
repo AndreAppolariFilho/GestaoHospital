@@ -1,4 +1,4 @@
-package br.com.codenation.hospital.config;
+/*package br.com.codenation.hospital.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -33,3 +33,4 @@ public class SwaggerConfig {
 				.build();
 	}
 }
+*/
